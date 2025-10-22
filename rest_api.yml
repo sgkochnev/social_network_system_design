@@ -1,0 +1,743 @@
+openapi: 3.0.3
+info:
+  title: Traveler Social Network API
+  version: 1.0.0
+  description: API for a traveler social network
+
+paths:
+  # 1. Posts
+  /api/v1/images:
+    post:
+      summary: Upload image
+      description: Upload a single image for posts
+      tags:
+        - images
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Image uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    description: URL of the uploaded image
+        '401':
+          description: Unauthorized
+        '413':
+          description: File size exceeds 200KB limit
+        '500':
+          description: Internal server error
+
+  /api/v1/posts:
+    post:
+      summary: Create post
+      description: Create a new post
+      tags:
+        - posts
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostCreate'
+      responses:
+        '201':
+          description: Post created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  post_id:
+                    type: string
+                    format: uuid
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+
+  /api/v1/posts/{id}:
+    put:
+      summary: Edit post
+      description: Edit an existing post
+      tags:
+        - posts
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostEdit'
+      responses:
+        '200':
+          description: Post updated successfully
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not authorized to edit this post
+        '404':
+          description: Post not found
+        '500':
+          description: Internal server error
+
+    delete:
+      summary: Delete post
+      description: Delete a post
+      tags:
+        - posts
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Post deleted successfully
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not authorized to delete this post
+        '404':
+          description: Post not found
+        '500':
+          description: Internal server error
+
+  # 2. Ratings
+  /api/v1/posts/{post_id}/rating:
+    post:
+      summary: Rate post
+      description: Rate a post
+      tags:
+        - ratings
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: post_id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rate:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+      responses:
+        '200':
+          description: Rating submitted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '401':
+          description: Post deleted successfully
+        '500':
+          description: Ratings service error
+    
+    get:
+      summary: Post rating by a user.
+      description: Retrieve a user's rating for a post.
+      tags:
+        - ratings
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: post_id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rating:
+                    type: integer
+                    minimum: 1
+                    maximum: 5
+        '403':
+          description: Forbidden to get rating by other users.
+        '404':
+          description: Post not found.
+        '500':
+          description: Internal server error
+
+  # 3. Comments
+  /api/v1/posts/{post_id}/comments:
+    get:
+      summary: Get comments
+      description: Get comments for a post
+      tags:
+        - comments
+      parameters:
+        - name: post_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: pagination.token
+          in: query
+          schema:
+            type: string
+        - name: pagination.page_size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Comments retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Comment'
+        '500':
+          description: Internal server error
+
+    post:
+      summary: Add comment
+      description: Add a comment to a post
+      tags:
+        - comments
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: post_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+                  maxLength: 500
+      responses:
+        '201':
+          description: Comment added successfully
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+
+  /api/v1/posts/{post_id}/comments/{comment_id}:
+    put:
+      summary: Edit comment
+      description: Edit a comment
+      tags:
+        - comments
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: post_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: comment_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+                  maxLength: 500
+      responses:
+        '200':
+          description: Comment updated successfully
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not authorized to edit this comment
+        '500':
+          description: Internal server error
+
+    delete:
+      summary: Delete comment
+      description: Delete a comment
+      tags:
+        - comments
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: post_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: comment_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Comment deleted successfully
+        '401':
+          description: Unauthorized
+        '403':
+          description: Not authorized to delete this comment
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+  
+  # 4. Subscriptions
+  /api/v1/subscriptions:
+    post:
+      summary: Subscribe to user
+      description: Subscribe to another user
+      tags:
+        - subscriptions
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                followed_user_id:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Subscribed successfully
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+
+    get:
+      summary: Get subscriptions
+      description: Get list of user subscriptions
+      tags:
+        - subscriptions
+      parameters:
+        - name: pagination.token
+          in: query
+          schema:
+            type: string
+        - name: pagination.page_size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Subscriptions retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Subscription'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+
+  /api/v1/unsubscribe:
+    post:
+      summary: Unsubscribe from user
+      description: Unsubscribe from a user
+      tags:
+        - subscriptions
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                followed_user_id:
+                  type: string
+                  format: uuid
+      responses:
+        '200':
+          description: Unsubscribed successfully
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+
+  # 5. Popular places search
+  /api/v1/places:
+    get:
+      summary: Show popular places
+      description: Show geo tags for popular places, sorted by rating
+      tags:
+        - search
+      parameters:
+        - name: pagination.token
+          in: query
+          schema:
+            type: string
+        - name: pagination.page_size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/PopularPlaceResult'
+        '500':
+          description: Internal server error
+
+  # 6. News feed
+  /api/v1/feed:
+    get:
+      summary: Get feed by author ID or by location or get a personalized feed.
+      description: Get a personalized news feed (posts from authors the user is subscribed to), a location-based feed, or a feed by author.
+      tags:
+        - feeds
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: pagination.token
+          in: query
+          schema:
+            type: string
+          # Page size is not needed here as feed contains only 20 items.
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [personal, by_location, by_author]
+        - name: author_id
+          required: false
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: geo_tags
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+            minItems: 1
+      responses:
+        '200':
+          description: Personal feed retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pagination:
+                    $ref: '#/components/schemas/Pagination'
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/FeedPost'
+        '401':
+          description: Unauthorized
+        '404':
+          description: User not found
+        '500':
+          description: Internal server error
+
+  # 7. Ratings
+  /api/v1/ratings:
+    get:
+      summary: Get aggregated ratings by post IDs
+      description: Get ratings by post IDs
+      tags:
+        - ratings
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: post_ids
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+              format: uuid
+            maxLength: 20
+      responses:
+        '200':
+          description: Rating
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    post_id:
+                      type: string
+                      format: uuid
+                    rating:
+                      type: number
+                      format: double
+                      minimum: 1
+                      maximum: 5
+        '500':
+          description: Internal server error
+    
+    post:
+      summary: Post rating for a post.
+      description: Post rating for a post.
+      tags:
+        - ratings
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          post_id:
+            schema:
+              type: string
+              format: uuid
+          rating:
+            schema:
+              type: integer
+              minimum: 1
+              maximum: 5
+      responses:
+        '200':
+          description: OK
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '500':
+          description: Internal server error
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    PostCreate:
+      type: object
+      required:
+        - title
+        - text
+      properties:
+        title:
+          type: string
+        text:
+          type: string
+          maxLength: 2000
+        images:
+          type: array
+          items:
+            type: string
+          maxItems: 10
+        geo_location:
+          type: object
+          properties:
+            lat:
+              type: number
+              format: float
+            lon:
+              type: number
+              format: float
+        tags:
+          type: array
+          items:
+            type: string
+
+    PostEdit:
+      type: object
+      required:
+        - title
+        - text
+      properties:
+        title:
+          type: string
+        text:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        images:
+          type: array
+          items:
+            type: string
+          maxItems: 10
+        geo_location:
+          type: object
+          properties:
+            lat:
+              type: number
+              format: float
+            lon:
+              type: number
+              format: float
+        tags:
+          type: array
+          items:
+            type: string
+
+    Comment:
+      type: object
+      properties:
+        author:
+          type: object
+          properties:
+            user_id:
+              type: string
+              format: uuid
+            username:
+              type: string
+        text:
+          type: string
+        is_edited:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    Subscription:
+      type: object
+      properties:
+        followed_user_id:
+          type: string
+        username:
+          type: string
+
+    PopularPlaceResult:
+      type: array
+      items:
+        type: string
+        description: Geo tag
+
+    FeedPost:
+      type: object
+      properties:
+        post_id:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        image_urls:
+          type: array
+          items:
+            type: string
+        geo_tags:
+          type: array
+          items:
+            type: string
+        author:
+          type: object
+          properties:
+            user_id:
+              type: string
+              format: uuid
+            username:
+              type: string
+        is_edited:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    Pagination:
+      type: object
+      properties:
+        next_page_token:
+          type: string

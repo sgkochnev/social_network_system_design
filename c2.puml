@@ -1,0 +1,29 @@
+@startuml C2_diagram
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title C2 Traveler Social Network
+
+Person(client, "Client", "Web/App")
+
+Container(cdn, "CDN", "")
+Container(loadBalancer, "Load Balancer", "nginx")
+
+Container(backend, "Backend", "")
+
+ContainerDb(mediaStorage, "Media Storage", "Blob-хранилище")
+ContainerDb(db, "Posts, comments, subscriptions, ratings", "РСУБД")
+ContainerDb(feedCache, "Feed Cache", "In-memory KV-storage", "")
+
+Rel(client, loadBalancer, "creates/upd/del post, creates/upd/del comment, un/subscribe, gets feed, rates post", "REST")
+Rel(loadBalancer, backend, "creates/upd/del post, creates/upd/del comment, un/subscribe, gets feed, rates post")
+Rel(backend, db, "r/w posts")
+Rel(backend, db, "r/w comments")
+Rel(backend, db, "r/w subscriptions")
+Rel(backend, db, "r/w post ratings")
+Rel(backend, feedCache, "r/w user feeds")
+Rel(client, loadBalancer, "uploads files")
+Rel(backend, mediaStorage, "stores files")
+Rel(cdn, mediaStorage, "retrieves media file", "HTTP")
+Rel(client, cdn, "requests image", "HTTP")
+
+@enduml

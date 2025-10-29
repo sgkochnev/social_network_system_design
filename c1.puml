@@ -1,0 +1,15 @@
+@startuml C1_diagram
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+Person(user, "User", "Пользователь социальной сети")
+
+System(socialNetwork, "Traveler Social", "")
+System(authSrv, "Auth", "")
+System(mapsApi, "Maps API", "")
+
+Rel(user, socialNetwork, "Label", "Создает пост, добавляет комментарий, загружает медиа-файлы, подписывается на пользователей, отписывается, просматривает ленты, оставляет оценку к постам.")
+Rel(user, authSrv, "Auth", "Логинится, авторизуется и разлогинивается")
+Rel(socialNetwork, mapsApi, "Maps API", "Указываем координаты и получаем по ним название локации")
+Rel(user, mapsApi, "", "Выбирает локацию на карте при создании поста")
+
+@enduml
